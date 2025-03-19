@@ -90,7 +90,30 @@ fn main() {
         println!("cargo:rustc-check-cfg=cfg(host_os, values(\"windows\"))");
     }
 
-    let version = format!("{:#?}\n", version);
+    // Create version struct manually to allow for fmt_debug to be set to none
+    let channel = match version.channel {
+        rustc::Channel::Stable => "crate::version::Channel::Stable",
+        rustc::Channel::Beta => "crate::version::Channel::Beta",
+        rustc::Channel::Dev => "crate::version::Channel::Dev",
+        rustc::Channel::Nightly(date) => &format!(
+            "crate::version::Channel::Nightly(
+        crate::date::Date {{
+            year: {},
+            month: {},
+            day: {},
+        }},
+    )",
+            date.year, date.month, date.day
+        ),
+    };
+    let version = format!(
+        "crate::version::Version {{
+    minor: {},
+    patch: {},
+    channel: {},
+}}",
+        version.minor, version.patch, channel,
+    );
     let out_dir = env::var_os("OUT_DIR").expect("OUT_DIR not set");
     let out_file = Path::new(&out_dir).join("version.expr");
     fs::write(out_file, version).expect("failed to write version.expr");
